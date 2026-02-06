@@ -40,3 +40,9 @@ HINTS — WHAT TO GENTLY EXPLORE (so later analysis can score each domain):
 Weave these in over the conversation so the transcript gives enough material to score each domain reliably.
 
 Remember: You're having a friendly chat, not conducting a test. Make the user feel valued and heard.`;
+
+/**
+ * Used when starting a session: the model should respond with a single warm opening question
+ * (e.g. about their day, breakfast, or plans) to get the conversation started.
+ */
+export const ASSESSMENT_GREETING_USER_PROMPT = `The user has just started a session. Say a single brief, warm opening question to get the conversation started. Keep it to one short sentence, for example asking how their day is, what they had for breakfast, or if they have any plans. Do not greet with "Hello" or introduce yourself again—just ask one friendly question.`;

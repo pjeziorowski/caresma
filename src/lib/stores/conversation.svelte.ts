@@ -14,8 +14,63 @@ function createConversationStore() {
 
 	function startSession() {
 		isSessionActive = true;
-		avatarState = 'listening';
+		avatarState = 'thinking';
 		error = null;
+		requestGreeting();
+	}
+
+	/**
+	 * Fetch initial AI greeting (first question), add to messages, and play TTS.
+	 * Same stream protocol as process-audio: first line JSON { text }, then MP3 bytes.
+	 */
+	async function requestGreeting() {
+		try {
+			const response = await fetch('/api/caresma/greeting', { method: 'POST' });
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({}));
+				throw new Error(data.error || 'Failed to get greeting');
+			}
+			const body = response.body;
+			if (!body) throw new Error('No response body');
+
+			const reader = body.getReader();
+			let textByteChunks: Uint8Array[] = [];
+			let firstAudioChunk: Uint8Array | null = null;
+			let foundDelimiter = false;
+
+			while (!foundDelimiter) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				const nlIndex = value.indexOf(0x0a);
+				if (nlIndex !== -1) {
+					foundDelimiter = true;
+					if (nlIndex > 0) textByteChunks.push(value.slice(0, nlIndex));
+					if (nlIndex + 1 < value.length) firstAudioChunk = value.slice(nlIndex + 1);
+				} else {
+					textByteChunks.push(value);
+				}
+			}
+
+			const decoder = new TextDecoder();
+			const textLine =
+				textByteChunks.map((c) => decoder.decode(c, { stream: true })).join('') + decoder.decode();
+			const parsed = JSON.parse(textLine);
+			const responseText: string = parsed.text || '';
+
+			if (responseText.trim()) {
+				addMessage('assistant', responseText);
+			}
+
+			avatarState = 'speaking';
+			await playStreamingAudio(reader, firstAudioChunk);
+		} catch (err) {
+			console.error('Greeting error:', err);
+			error = err instanceof Error ? err.message : 'Could not start conversation';
+			// Still add a fallback message so the user has something to respond to
+			addMessage('assistant', "How has your day been so far? I'd love to hear about it.");
+		} finally {
+			avatarState = isSessionActive ? 'listening' : 'idle';
+		}
 	}
 
 	function endSession() {

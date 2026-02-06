@@ -5,7 +5,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
-import { ASSESSMENT_SYSTEM_PROMPT } from './prompts/assessment';
+import { ASSESSMENT_SYSTEM_PROMPT, ASSESSMENT_GREETING_USER_PROMPT } from './prompts/assessment';
 import { ANALYSIS_SYSTEM_MESSAGE, getAnalysisPrompt } from './prompts/analysis';
 
 // ============================================
@@ -17,6 +17,68 @@ const CARESMA_TTS_VOICE = 'onyx' as const;
 // Caresma Routes
 // ============================================
 const caresmaRoutes = new Hono()
+	// Initial greeting when user starts a session: AI asks the first question (text + TTS stream)
+	// Protocol: first line is JSON {"text":"..."}\n, remaining bytes = MP3
+	.post('/greeting', async (c) => {
+		try {
+			const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+
+			const completion = await openai.chat.completions.create({
+				model: 'gpt-4.1-mini',
+				messages: [
+					{ role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
+					{ role: 'user', content: ASSESSMENT_GREETING_USER_PROMPT }
+				],
+				max_tokens: 150,
+				temperature: 0.7
+			});
+
+			const responseText =
+				completion.choices[0]?.message?.content?.trim() ||
+				"How has your day been so far? I'd love to hear about it.";
+
+			const ttsResponse = await openai.audio.speech.create({
+				model: 'tts-1',
+				voice: CARESMA_TTS_VOICE,
+				input: responseText,
+				speed: 0.95
+			});
+
+			const encoder = new TextEncoder();
+			const textLine = encoder.encode(JSON.stringify({ text: responseText }) + '\n');
+			const ttsBody = ttsResponse.body as ReadableStream<Uint8Array> | null;
+
+			const responseStream = new ReadableStream<Uint8Array>({
+				async start(controller) {
+					controller.enqueue(textLine);
+					if (ttsBody) {
+						const reader = ttsBody.getReader();
+						try {
+							while (true) {
+								const { done, value } = await reader.read();
+								if (done) break;
+								controller.enqueue(value);
+							}
+						} finally {
+							reader.releaseLock();
+						}
+					}
+					controller.close();
+				}
+			});
+
+			return new Response(responseStream, {
+				headers: {
+					'Content-Type': 'application/octet-stream',
+					'Cache-Control': 'no-cache'
+				}
+			});
+		} catch (error) {
+			console.error('Greeting error:', error);
+			const message = error instanceof Error ? error.message : 'Failed to get greeting';
+			return c.json({ error: message, success: false }, 500);
+		}
+	})
 	// All-in-one: transcribe audio + chat + TTS in a single request (eliminates round-trip)
 	// Accepts FormData with 'audio' file and 'messages' JSON string
 	// Protocol: first line is JSON {"text":"...","transcript":"..."}\n, remaining bytes = MP3

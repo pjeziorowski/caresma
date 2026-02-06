@@ -55,6 +55,7 @@ We use **GPT-4.1-mini** (not GPT-4o-mini) for transcript → reply text. It’s 
 ### Client-side VAD
 
 The `VoiceRecorder` component keeps the mic stream open for the entire session. An `AnalyserNode` monitors audio levels on every animation frame. When:
+
 - Speech is detected (level > threshold after warmup)
 - Then 2 seconds of silence follows
 
@@ -63,6 +64,7 @@ The `VoiceRecorder` component keeps the mic stream open for the entire session. 
 ### Avatar state machine
 
 The Rive animation has 4 states controlled by boolean inputs:
+
 - **idle** — all inputs false (gentle breathing)
 - **listening** — `Hear = true` (attentive posture)
 - **thinking** — `Check = true` (processing animation)
@@ -95,27 +97,27 @@ src/
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | SvelteKit 2 + Svelte 5 (runes) + Tailwind CSS + shadcn-svelte |
-| Avatar | Rive (`@rive-app/canvas`) |
-| Backend API | Hono with Zod validation, running on SvelteKit server routes |
-| STT | OpenAI Whisper (`whisper-1`) |
-| LLM | GPT-4.1-mini (conversation turns) / GPT-4o (report analysis) |
-| TTS | OpenAI TTS (`tts-1`, voice: `onyx`, speed: 0.95) |
+| Layer       | Technology                                                    |
+| ----------- | ------------------------------------------------------------- |
+| Frontend    | SvelteKit 2 + Svelte 5 (runes) + Tailwind CSS + shadcn-svelte |
+| Avatar      | Rive (`@rive-app/canvas`)                                     |
+| Backend API | Hono with Zod validation, running on SvelteKit server routes  |
+| STT         | OpenAI Whisper (`whisper-1`)                                  |
+| LLM         | GPT-4.1-mini (conversation turns) / GPT-4o (report analysis)  |
+| TTS         | OpenAI TTS (`tts-1`, voice: `onyx`, speed: 0.95)              |
 
 ---
 
 ## What This Prototype Demonstrates vs. Full System Design
 
-| Feature | Prototype | System Design (MVP) |
-|---|---|---|
-| Voice conversation | Whisper (batch per turn) | Deepgram Nova-2 (real-time streaming) |
-| Animated avatar | Rive 4-state machine | + lip-sync, emotion states |
-| Cognitive assessment | Post-session report from transcript | Real-time scoring during conversation |
-| Audio pipeline | Single-request STT→LLM→TTS | Same approach, with Deepgram streaming |
-| Progressive playback | MediaSource + blob fallback | Same |
-| Session scheduling | Not implemented (designed in system doc) | Google Calendar API + SendGrid |
-| Vision analysis | Not in scope | GPT-4V face engagement (phase 2) |
-| Data persistence | In-memory (session only) | Neon PostgreSQL + Cloudflare R2 |
-| Authentication | None | OAuth 2.0 / magic-link |
+| Feature              | Prototype                                | System Design (MVP)                    |
+| -------------------- | ---------------------------------------- | -------------------------------------- |
+| Voice conversation   | Whisper (batch per turn)                 | Deepgram Nova-2 (real-time streaming)  |
+| Animated avatar      | Rive 4-state machine                     | + lip-sync, emotion states             |
+| Cognitive assessment | Post-session report from transcript      | Real-time scoring during conversation  |
+| Audio pipeline       | Single-request STT→LLM→TTS               | Same approach, with Deepgram streaming |
+| Progressive playback | MediaSource + blob fallback              | Same                                   |
+| Session scheduling   | Not implemented (designed in system doc) | Google Calendar API + SendGrid         |
+| Vision analysis      | Not in scope                             | GPT-4V face engagement (phase 2)       |
+| Data persistence     | In-memory (session only)                 | Neon PostgreSQL + Cloudflare R2        |
+| Authentication       | None                                     | OAuth 2.0 / magic-link                 |

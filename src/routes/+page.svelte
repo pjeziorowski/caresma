@@ -132,8 +132,9 @@
 							'bg-emerald-400/80': conversation.avatarState === 'listening',
 							'bg-amber-400/85': conversation.avatarState === 'thinking',
 							'bg-blue-400/80': conversation.avatarState === 'speaking',
-							'bg-slate-300/80':
-								!['listening', 'thinking', 'speaking'].includes(conversation.avatarState)
+							'bg-slate-300/80': !['listening', 'thinking', 'speaking'].includes(
+								conversation.avatarState
+							)
 						},
 						conversation.isProcessing && 'animate-pulse'
 					)}
@@ -178,7 +179,9 @@
 		<section class="mt-2">
 			<VoiceRecorder
 				sessionActive={conversation.isSessionActive}
-				paused={conversation.isProcessing}
+				paused={conversation.isProcessing ||
+					conversation.avatarState === 'thinking' ||
+					conversation.avatarState === 'speaking'}
 				showStatusText={false}
 				onRecordingComplete={handleRecordingComplete}
 				onError={handleSessionError}
@@ -241,15 +244,13 @@
 	</div>
 
 	<!-- Chat history panel -->
-	{#key conversation.messages.length}
-		<section class="mt-8 w-full max-w-3xl" {@attach revealOnMount({ y: 8, duration: 0.35 })}>
-			<ChatHistory
-				messages={conversation.messages}
-				isCollapsed={isChatCollapsed}
-				onToggle={toggleChat}
-			/>
-		</section>
-	{/key}
+	<section class="mt-8 w-full max-w-3xl" {@attach revealOnMount({ y: 8, duration: 0.35 })}>
+		<ChatHistory
+			messages={conversation.messages}
+			isCollapsed={isChatCollapsed}
+			onToggle={toggleChat}
+		/>
+	</section>
 
 	<!-- Footer with status -->
 	<footer class="mt-8 flex flex-col items-center gap-3" data-animate>
