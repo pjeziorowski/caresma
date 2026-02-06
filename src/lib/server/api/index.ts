@@ -29,8 +29,7 @@ const caresmaRoutes = new Hono()
 					{ role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
 					{ role: 'user', content: ASSESSMENT_GREETING_USER_PROMPT }
 				],
-				max_tokens: 150,
-				temperature: 0.7
+				max_completion_tokens: 150
 			});
 
 			const responseText =
@@ -129,8 +128,7 @@ const caresmaRoutes = new Hono()
 			const completionStream = await openai.chat.completions.create({
 				model: 'gpt-5-mini',
 				messages: fullMessages,
-				max_tokens: 300,
-				temperature: 0.7,
+				max_completion_tokens: 300,
 				stream: true
 			});
 
@@ -203,8 +201,7 @@ const caresmaRoutes = new Hono()
 					{ role: 'system', content: ANALYSIS_SYSTEM_MESSAGE },
 					{ role: 'user', content: getAnalysisPrompt(transcript) }
 				],
-				max_tokens: 1000,
-				temperature: 0.3,
+				max_completion_tokens: 1000,
 				response_format: { type: 'json_object' }
 			});
 
