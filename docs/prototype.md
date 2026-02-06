@@ -30,7 +30,7 @@ Two functional screens that demonstrate the core of the Caresma system design:
  ┌──────────────────────────────────────────────────────────┐
  │  POST /api/caresma/process-audio                        │
  │    1. Whisper STT (audio → transcript)                  │
- │    2. GPT-5-mini (transcript → reply text, streamed)     │
+ │    2. GPT-5-nano (transcript → reply text, streamed)     │
  │    3. OpenAI TTS (reply text → MP3 audio stream)        │
  │    Response: JSON line {"text","transcript"}\n + MP3     │
  │                                                          │
@@ -50,7 +50,7 @@ This eliminates three network round-trips compared to calling transcribe/chat/sp
 
 ### Model choice for conversation reply
 
-We use **GPT-5-mini** for transcript → reply text. It’s smarter than GPT-4.1-mini at ~3x lower input cost and ~1.6x lower output cost. 400k context window is more than sufficient for conversation turns.
+We use **GPT-5-nano** for transcript → reply text. It’s the fastest model in the GPT-5 family at $0.05/1M input and $0.40/1M output. Optimized for lowest latency in voice conversation turns.
 
 ### Client-side VAD
 
@@ -103,7 +103,7 @@ src/
 | Avatar      | Rive (`@rive-app/canvas`)                                     |
 | Backend API | Hono with Zod validation, running on SvelteKit server routes  |
 | STT         | OpenAI Whisper (`whisper-1`)                                  |
-| LLM         | GPT-5-mini (conversation turns) / GPT-5.2 (report analysis)   |
+| LLM         | GPT-5-nano (conversation turns) / GPT-5.2 (report analysis)   |
 | TTS         | OpenAI TTS (`tts-1`, voice: `onyx`, speed: 0.95)              |
 
 ---

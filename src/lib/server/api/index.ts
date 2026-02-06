@@ -5,8 +5,13 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
+import { zodResponseFormat } from 'openai/helpers/zod';
 import { ASSESSMENT_SYSTEM_PROMPT, ASSESSMENT_GREETING_USER_PROMPT } from './prompts/assessment';
-import { ANALYSIS_SYSTEM_MESSAGE, getAnalysisPrompt } from './prompts/analysis';
+import {
+	ANALYSIS_SYSTEM_MESSAGE,
+	CognitiveAssessmentSchema,
+	getAnalysisPrompt
+} from './prompts/analysis';
 
 // ============================================
 // Caresma AI Assistant
@@ -24,12 +29,13 @@ const caresmaRoutes = new Hono()
 			const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
 			const completion = await openai.chat.completions.create({
-				model: 'gpt-5-mini',
+				model: 'gpt-5-nano',
 				messages: [
 					{ role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
 					{ role: 'user', content: ASSESSMENT_GREETING_USER_PROMPT }
 				],
-				max_completion_tokens: 150
+				max_completion_tokens: 150,
+				reasoning_effort: 'minimal'
 			});
 
 			const responseText =
@@ -115,7 +121,7 @@ const caresmaRoutes = new Hono()
 				});
 			}
 
-			// Step 2: LLM chat (stream to collect text fast) — using gpt-5-mini for quality + speed + cost
+			// Step 2: LLM chat (stream to collect text fast) — using gpt-5-nano for lowest latency
 			const fullMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 				{ role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
 				...previousMessages.map((m) => ({
@@ -126,9 +132,10 @@ const caresmaRoutes = new Hono()
 			];
 
 			const completionStream = await openai.chat.completions.create({
-				model: 'gpt-5-mini',
+				model: 'gpt-5-nano',
 				messages: fullMessages,
 				max_completion_tokens: 300,
+				reasoning_effort: 'minimal',
 				stream: true
 			});
 
@@ -195,18 +202,24 @@ const caresmaRoutes = new Hono()
 			const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 			const { transcript } = c.req.valid('json');
 
-			const completion = await openai.chat.completions.create({
+			const completion = await openai.chat.completions.parse({
 				model: 'gpt-5.2',
 				messages: [
 					{ role: 'system', content: ANALYSIS_SYSTEM_MESSAGE },
 					{ role: 'user', content: getAnalysisPrompt(transcript) }
 				],
 				max_completion_tokens: 1000,
-				response_format: { type: 'json_object' }
+				response_format: zodResponseFormat(CognitiveAssessmentSchema, 'cognitive_assessment')
 			});
 
-			const analysisText = completion.choices[0]?.message?.content || '{}';
-			const analysis = JSON.parse(analysisText);
+			const message = completion.choices[0]?.message;
+			if (message?.refusal) {
+				return c.json({ error: message.refusal, success: false }, 400);
+			}
+			const analysis = message?.parsed ?? null;
+			if (!analysis) {
+				return c.json({ error: 'No structured analysis returned', success: false }, 500);
+			}
 
 			return c.json({
 				analysis,
