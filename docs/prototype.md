@@ -30,12 +30,12 @@ Two functional screens that demonstrate the core of the Caresma system design:
  ┌──────────────────────────────────────────────────────────┐
  │  POST /api/caresma/process-audio                        │
  │    1. Whisper STT (audio → transcript)                  │
- │    2. GPT-4.1-mini (transcript → reply text, streamed)  │
+ │    2. GPT-5-mini (transcript → reply text, streamed)     │
  │    3. OpenAI TTS (reply text → MP3 audio stream)        │
  │    Response: JSON line {"text","transcript"}\n + MP3     │
  │                                                          │
  │  POST /api/caresma/analyze                              │
- │    GPT-4o + response_format:json_object → 5-domain JSON │
+ │    GPT-5.2 + response_format:json_object → 5-domain JSON│
  └──────────────────────────────────────────────────────────┘
 ```
 
@@ -50,7 +50,7 @@ This eliminates three network round-trips compared to calling transcribe/chat/sp
 
 ### Model choice for conversation reply
 
-We use **GPT-4.1-mini** (not GPT-4o-mini) for transcript → reply text. It’s the direct successor: better instruction-following and quality at similar latency and cost. Use GPT-4o-mini only if you need the absolute lowest cost; otherwise prefer `gpt-4.1-mini`.
+We use **GPT-5-mini** for transcript → reply text. It’s smarter than GPT-4.1-mini at ~3x lower input cost and ~1.6x lower output cost. 400k context window is more than sufficient for conversation turns.
 
 ### Client-side VAD
 
@@ -103,7 +103,7 @@ src/
 | Avatar      | Rive (`@rive-app/canvas`)                                     |
 | Backend API | Hono with Zod validation, running on SvelteKit server routes  |
 | STT         | OpenAI Whisper (`whisper-1`)                                  |
-| LLM         | GPT-4.1-mini (conversation turns) / GPT-4o (report analysis)  |
+| LLM         | GPT-5-mini (conversation turns) / GPT-5.2 (report analysis)   |
 | TTS         | OpenAI TTS (`tts-1`, voice: `onyx`, speed: 0.95)              |
 
 ---

@@ -24,7 +24,7 @@ const caresmaRoutes = new Hono()
 			const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
 			const completion = await openai.chat.completions.create({
-				model: 'gpt-4.1-mini',
+				model: 'gpt-5-mini',
 				messages: [
 					{ role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
 					{ role: 'user', content: ASSESSMENT_GREETING_USER_PROMPT }
@@ -116,7 +116,7 @@ const caresmaRoutes = new Hono()
 				});
 			}
 
-			// Step 2: LLM chat (stream to collect text fast) — using gpt-4.1-mini for quality + speed
+			// Step 2: LLM chat (stream to collect text fast) — using gpt-5-mini for quality + speed + cost
 			const fullMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
 				{ role: 'system', content: ASSESSMENT_SYSTEM_PROMPT },
 				...previousMessages.map((m) => ({
@@ -127,7 +127,7 @@ const caresmaRoutes = new Hono()
 			];
 
 			const completionStream = await openai.chat.completions.create({
-				model: 'gpt-4.1-mini',
+				model: 'gpt-5-mini',
 				messages: fullMessages,
 				max_tokens: 300,
 				temperature: 0.7,
@@ -198,7 +198,7 @@ const caresmaRoutes = new Hono()
 			const { transcript } = c.req.valid('json');
 
 			const completion = await openai.chat.completions.create({
-				model: 'gpt-4o',
+				model: 'gpt-5.2',
 				messages: [
 					{ role: 'system', content: ANALYSIS_SYSTEM_MESSAGE },
 					{ role: 'user', content: getAnalysisPrompt(transcript) }
